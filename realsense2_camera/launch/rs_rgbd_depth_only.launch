@@ -41,6 +41,7 @@ Processing enabled by this node:
   <arg name="camera"              default="camera"/>
   <arg name="tf_prefix"           default="$(arg camera)"/>
   <arg name="manager"             default="realsense2_camera_manager"/>
+  <arg name="pointcloud_viz"      default="false"/>
 
   <!-- Camera device specific arguments -->
 
@@ -106,9 +107,12 @@ Processing enabled by this node:
   <arg name="sw_registered_processing"        default="false" unless="$(arg align_depth)" />
   <arg name="sw_registered_processing"        default="false" if="$(arg align_depth)" />
 
+  <group if="$(arg pointcloud_viz)">
+    <node name="rviz" pkg="rviz" type="rviz" args="-d $(find realsense2_camera)/rviz/pointcloud.rviz" required="true"/>
+  </group>
+
   <group ns="$(arg camera)">
 
-    <node name="rviz" pkg="rviz" type="rviz" args="-d $(find realsense2_camera)/rviz/pointcloud.rviz" required="true" />
     <!-- Launch the camera device nodelet-->
     <include file="$(find realsense2_camera)/launch/includes/nodelet.launch.xml">
       <arg name="manager"                  value="$(arg manager)"/>
