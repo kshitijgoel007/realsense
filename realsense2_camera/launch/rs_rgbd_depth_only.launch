@@ -52,12 +52,12 @@ Processing enabled by this node:
   <arg name="fisheye_height"      default="480"/>
   <arg name="enable_fisheye"      default="false"/>
 
-  <arg name="depth_width"         default="640"/>
-  <arg name="depth_height"        default="480"/>
+  <arg name="depth_width"         default="424"/>
+  <arg name="depth_height"        default="240"/>
   <arg name="enable_depth"        default="true"/>
 
-  <arg name="infra_width"         default="640"/>
-  <arg name="infra_height"        default="480"/>
+  <arg name="infra_width"         default="$(arg depth_width)"/>
+  <arg name="infra_height"        default="$(arg depth_height)"/>
   <arg name="enable_infra1"       default="true"/>
   <arg name="enable_infra2"       default="true"/>
 
@@ -66,9 +66,9 @@ Processing enabled by this node:
   <arg name="enable_color"        default="false"/>
 
   <arg name="fisheye_fps"         default="30"/>
-  <arg name="depth_fps"           default="30"/>
-  <arg name="infra_fps"           default="30"/>
-  <arg name="color_fps"           default="30"/>
+  <arg name="depth_fps"           default="15"/>
+  <arg name="infra_fps"           default="$(arg depth_fps)"/>
+  <arg name="color_fps"           default="$(arg depth_fps)"/>
   <arg name="gyro_fps"            default="400"/>
   <arg name="accel_fps"           default="250"/>
   <arg name="enable_gyro"         default="true"/>
@@ -155,8 +155,8 @@ Processing enabled by this node:
     <node pkg="nodelet" type="nodelet" name="points_xyzrgb_hw_registered"
           args="load depth_image_proc/point_cloud_xyz $(arg manager) $(arg bond)"
           respawn="$(arg respawn)">
-      <remap from="camera_info" to="/camera/depth/camera_info" />
-      <remap from="image_rect"  to="/camera/depth/image_rect_raw" />
+      <remap from="camera_info" to="/$(arg camera)/depth/camera_info" />
+      <remap from="image_rect"  to="/$(arg camera)/depth/image_rect_raw" />
       <remap from="points"      to="$(arg depth_registered)/points_raw" />
     </node>
 
