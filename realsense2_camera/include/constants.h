@@ -7,7 +7,7 @@
 
 #define REALSENSE_ROS_MAJOR_VERSION    2
 #define REALSENSE_ROS_MINOR_VERSION    2
-#define REALSENSE_ROS_PATCH_VERSION    1
+#define REALSENSE_ROS_PATCH_VERSION    8
 
 #define STRINGIFY(arg) #arg
 #define VAR_ARG_STRING(arg) STRINGIFY(arg)
@@ -17,6 +17,7 @@
 namespace realsense2_camera
 {
     const uint16_t SR300_PID        = 0x0aa5; // SR300
+    const uint16_t SR300v2_PID      = 0x0B48; // SR305
     const uint16_t RS400_PID        = 0x0ad1; // PSR
     const uint16_t RS410_PID        = 0x0ad2; // ASR
     const uint16_t RS415_PID        = 0x0ad3; // ASRC
@@ -37,6 +38,7 @@ namespace realsense2_camera
 
     const bool ALIGN_DEPTH    = false;
     const bool POINTCLOUD     = false;
+    const bool ALLOW_NO_TEXTURE_POINTS = false;
     const bool SYNC_FRAMES    = false;
 
     const int IMAGE_WIDTH     = 640;
@@ -53,6 +55,7 @@ namespace realsense2_camera
     const bool ENABLE_FISHEYE = true;
     const bool ENABLE_IMU     = true;
     const bool HOLD_BACK_IMU_FOR_FRAMES = false;
+    const bool PUBLISH_ODOM_TF = true;
 
 
     const std::string DEFAULT_BASE_FRAME_ID            = "camera_link";
@@ -80,6 +83,8 @@ namespace realsense2_camera
 
     const std::string DEFAULT_UNITE_IMU_METHOD         = "";
     const std::string DEFAULT_FILTERS                  = "";
+    const std::string DEFAULT_TOPIC_ODOM_IN            = "";
 
+    const float ROS_DEPTH_SCALE = 0.001;
     using stream_index_pair = std::pair<rs2_stream, int>;
 }  // namespace realsense2_camera

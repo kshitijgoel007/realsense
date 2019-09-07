@@ -6,13 +6,74 @@ T265RealsenseNode::T265RealsenseNode(ros::NodeHandle& nodeHandle,
                                      ros::NodeHandle& privateNodeHandle,
                                      rs2::device dev,
                                      const std::string& serial_no) : 
-                                     BaseRealSenseNode(nodeHandle, privateNodeHandle, dev, serial_no) {}
+                                     BaseRealSenseNode(nodeHandle, privateNodeHandle, dev, serial_no),
+                                     _wo_snr(dev.first<rs2::wheel_odometer>()),
+                                     _use_odom_in(false) 
+                                     {
+                                         _monitor_options = {RS2_OPTION_ASIC_TEMPERATURE, RS2_OPTION_MOTION_MODULE_TEMPERATURE};
+                                         initializeOdometryInput();
+                                     }
+
+void T265RealsenseNode::initializeOdometryInput()
+{
+    std::string calib_odom_file;
+    _pnh.param("calib_odom_file", calib_odom_file, std::string(""));
+    if (calib_odom_file.empty())
+    {
+        ROS_INFO("No calib_odom_file. No input odometry accepted.");
+        return;
+    }
+    std::ifstream calibrationFile(calib_odom_file);
+    if (not calibrationFile)
+    {
+        ROS_FATAL_STREAM("calibration_odometry file not found. calib_odom_file = " << calib_odom_file);
+        throw std::runtime_error("calibration_odometry file not found" );
+    }
+    const std::string json_str((std::istreambuf_iterator<char>(calibrationFile)),
+        std::istreambuf_iterator<char>());
+    const std::vector<uint8_t> wo_calib(json_str.begin(), json_str.end());
+
+    if (!_wo_snr.load_wheel_odometery_config(wo_calib))
+    {
+        ROS_FATAL_STREAM("Format error in calibration_odometry file: " << calib_odom_file);
+        throw std::runtime_error("Format error in calibration_odometry file" );
+    }
+    _use_odom_in = true;
+}
+
+void T265RealsenseNode::publishTopics()
+{
+    BaseRealSenseNode::publishTopics();
+    setupSubscribers();
+}
+
+void T265RealsenseNode::setupSubscribers()
+{
+    if (not _use_odom_in) return;
+
+    std::string topic_odom_in;
+    _pnh.param("topic_odom_in", topic_odom_in, DEFAULT_TOPIC_ODOM_IN);
+    ROS_INFO_STREAM("Subscribing to in_odom topic: " << topic_odom_in);
+
+    _odom_subscriber = _node_handle.subscribe(topic_odom_in, 1, &T265RealsenseNode::odom_in_callback, this);
+}
+
+void T265RealsenseNode::odom_in_callback(const nav_msgs::Odometry::ConstPtr& msg)
+{
+    ROS_DEBUG("Got in_odom message");
+    rs2_vector velocity {-(float)(msg->twist.twist.linear.y),
+                          (float)(msg->twist.twist.linear.z),
+                         -(float)(msg->twist.twist.linear.x)};
+
+    ROS_DEBUG_STREAM("Add odom: " << velocity.x << ", " << velocity.y << ", " << velocity.z);
+    _wo_snr.send_wheel_odometry(0, 0, velocity);
+}
 
 void T265RealsenseNode::calcAndPublishStaticTransform(const stream_index_pair& stream, const rs2::stream_profile& base_profile)
 {
     // Transform base to stream
     tf::Quaternion quaternion_optical;
-    quaternion_optical.setRPY(M_PI / 2, 0.0, -M_PI / 2);
+    quaternion_optical.setRPY(M_PI / 2, 0.0, -M_PI / 2);    //Pose To ROS
     float3 zero_trans{0, 0, 0};
 
     ros::Time transform_ts_ = ros::Time::now();
@@ -41,8 +102,6 @@ void T265RealsenseNode::calcAndPublishStaticTransform(const stream_index_pair& s
     if (stream == POSE)
     {
         Q = Q.inverse();
-        quaternion_optical = quaternion_optical.inverse();
-
         publish_static_tf(transform_ts_, trans, Q, _frame_id[stream], _base_frame_id);
     }
     else
